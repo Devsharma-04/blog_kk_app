@@ -1,0 +1,61 @@
+{% extends "layouts/app.html" %} {% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <h5 class="fw-bold mb-4 text-center">Search Results for "{{ query }}"</h5>
+        
+        {% for person in results %}
+        <div class="card mb-2 border-0 shadow-sm p-3" style="border-radius: 12px;">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    {% if person.profile.profile_pic %}
+                        <img src="{{ person.profile.profile_pic.url }}" class="rounded-circle me-3" style="width: 55px; height: 55px; object-fit: cover; border: 2px solid #dbdbdb;">
+                    {% else %}
+                        <div class="rounded-circle me-3 bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 55px; height: 55px;">
+                            {{ person.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    <div>
+                        <div class="fw-bold text-dark">{{ person.username }}</div>
+                        <div class="text-muted small">@{{ person.username|lower }}</div>
+                    </div>
+                </div>
+
+                <div class="action-btn">
+                    <a href="{% url 'send_request' person.id %}" 
+                       class="btn btn-primary btn-sm px-4 fw-bold send-req-btn" 
+                       style="border-radius: 8px;">
+                        Add Friend
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center mt-5">
+            <div class="mb-3">
+                <i class="fas fa-search text-muted" style="font-size: 3rem;"></i>
+            </div>
+            <p class="text-muted fw-bold">No users found with "{{ query }}"</p>
+            <p class="text-muted small">Try searching for a different username.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
+    document.querySelectorAll('.send-req-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            fetch(this.href, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') }
+            }).then(r => r.json()).then(data => {
+                this.innerHTML = 'Requested';
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-secondary');
+                this.style.pointerEvents = 'none';
+            });
+        });
+    });
+</script>
+{% endblock %}

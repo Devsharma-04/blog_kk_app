@@ -1,0 +1,294 @@
+{% extends "layouts/app.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        
+        <div class="d-flex mb-4 overflow-auto p-3 bg-white border rounded shadow-sm" style="scrollbar-width: none; -ms-overflow-style: none;">
+            <div class="text-center me-3">
+                <a href="{% url 'upload_story' %}" style="text-decoration: none;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-light border" 
+                         style="width: 65px; height: 65px; border: 2px dashed #007bff !important;">
+                        <i class="fas fa-plus text-primary"></i>
+                    </div>
+                    <p class="small mb-0 text-dark">Your Story</p>
+                </a>
+            </div>
+
+            {% for story in stories %}
+            <div class="text-center me-3 story-item" style="cursor: pointer;" 
+                 onclick="openStoryModal('{{ story.image.url }}', '{% if story.music_url %}{{ story.music_url }}{% elif story.music %}{{ story.music.url }}{% endif %}', '{{ story.user.username }}')">
+                <div class="rounded-circle p-1" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); width: 65px; height: 65px;">
+                    {% if story.user.profile.profile_pic %}
+                        <img src="{{ story.user.profile.profile_pic.url }}" class="rounded-circle border border-white" 
+                             style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary border border-white d-flex align-items-center justify-content-center text-white" style="width: 100%; height: 100%;">
+                            {{ story.user.username|first|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+                <p class="small mb-0 text-truncate" style="max-width: 65px;">{{ story.user.username }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% for post in posts %}
+        <div class="card mb-4 shadow-sm border-0 post-card" style="border-radius: 12px; overflow: hidden;">
+            <div class="card-header bg-white border-0 d-flex align-items-center py-3">
+                <a href="{% url 'user_profile' post.user.username %}" class="text-decoration-none d-flex align-items-center">
+                    {% if post.user.profile.profile_pic %}
+                        <img src="{{ post.user.profile.profile_pic.url }}" class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover; border: 1px solid #dbdbdb;">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary me-2 d-flex align-items-center justify-content-center text-white" style="width: 35px; height: 35px; font-size: 12px;">
+                            {{ post.user.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    <span class="fw-bold text-dark">{{ post.user.username }}</span>
+                </a>
+            </div>
+
+            {% if post.image %}
+                <img src="{{ post.image.url }}" class="img-fluid w-100" alt="Post content" style="max-height: 600px; object-fit: cover;">
+            {% endif %}
+
+            <div class="card-body pb-0">
+                <div class="d-flex mb-2 fs-4">
+                    <a href="{% url 'like_post' post.id %}" class="text-decoration-none me-3 like-btn">
+                        {% if request.user in post.likes.all %}
+                            <i class="fas fa-heart text-danger"></i> 
+                        {% else %}
+                            <i class="far fa-heart text-dark cursor-pointer"></i> 
+                        {% endif %}
+                    </a>
+                    <i class="far fa-comment me-3 cursor-pointer text-dark"></i>
+                    <i class="far fa-paper-plane cursor-pointer text-dark" onclick="openShareModal({{ post.id }})"></i>
+                </div>
+                
+                <p class="fw-bold mb-1 small">{{ post.total_likes }} likes</p>
+                <p class="card-text mb-1">
+                    <a href="{% url 'user_profile' post.user.username %}" class="text-decoration-none fw-bold text-dark">{{ post.user.username }}</a> 
+                    {{ post.caption }}
+                </p>
+                <p class="text-muted small text-uppercase mb-3" style="font-size: 10px;">
+                    {{ post.created_at|timesince }} ago
+                </p>
+
+                <hr class="my-2 text-muted opacity-25">
+
+                <div class="post-footer pb-3">
+                    <form action="{% url 'add_comment' post.id %}" method="POST" class="mt-2 d-flex">
+                        {% csrf_token %}
+                        <input type="text" name="content" class="form-control form-control-sm border-0 bg-light" placeholder="Add a comment..." required>
+                        <button type="submit" class="btn btn-sm text-primary fw-bold">Post</button>
+                    </form>
+
+                    <div class="comments-list mt-2" style="max-height: 100px; overflow-y: auto;">
+                        {% for comment in post.comments.all %}
+                            <p class="small mb-1"><strong>{{ comment.user.username }}</strong> {{ comment.content }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center mt-5">
+            <h4>No posts yet.</h4>
+            <a href="{% url 'create_post' %}" class="btn btn-primary mt-2">Create First Post</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div id="storyModal" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background: rgba(0,0,0,0.98);">
+    <span style="position:absolute; right:25px; top:15px; color:white; font-size:40px; cursor:pointer; font-weight:bold;" onclick="closeStoryModal()">&times;</span>
+    <div class="modal-content text-center" style="margin: auto; display: block; width: 90%; max-width: 420px; position: relative; top: 50%; transform: translateY(-50%);">
+        <div class="d-flex align-items-center mb-3 px-2">
+            <h5 id="storyUser" class="text-white m-0"></h5>
+            <span class="ms-2 badge bg-success" id="musicBadge" style="display:none; font-size: 10px;"><i class="fab fa-spotify"></i> Spotify</span>
+        </div>
+        <img id="storyImg" src="" style="width: 100%; border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+        <audio id="storyAudio" loop></audio>
+        <div class="progress mt-4" style="height: 4px; background-color: rgba(255,255,255,0.2);">
+            <div id="storyProgress" class="progress-bar bg-white" style="width: 0%"></div>
+        </div>
+    </div>
+</div>
+
+<div id="shareModal" class="modal" style="display:none; position:fixed; z-index:10000; left:0; top:0; width:100%; height:100%; background: rgba(0,0,0,0.7);">
+    <div class="modal-content bg-white mx-auto" style="width: 90%; max-width: 400px; border-radius: 15px; margin-top: 100px; overflow: hidden;">
+        <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+            <h6 class="m-0 fw-bold">Share to Friends</h6>
+            <span style="cursor:pointer; font-size:24px; line-height: 1;" onclick="closeShareModal()">&times;</span>
+        </div>
+        <div id="friendsList" style="max-height: 350px; overflow-y: auto;" class="p-2">
+             </div>
+    </div>
+</div>
+
+<style>
+    .cursor-pointer { cursor: pointer; transition: 0.2s; }
+    .cursor-pointer:hover { color: #ed4956; }
+    .story-item:active { transform: scale(0.95); }
+    ::-webkit-scrollbar { display: none; }
+    .friend-item:hover { background-color: #f8f9fa; }
+    .btn-sent { background-color: #28a745 !important; border-color: #28a745 !important; color: white !important; }
+</style>
+
+<script>
+    let progressInterval;
+    let currentSharingPostId = null;
+
+    function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
+    
+    document.querySelectorAll('.like-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const icon = this.querySelector('i');
+            const url = this.href;
+            const likesCountEl = this.parentElement.nextElementSibling;
+            
+            fetch(url, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') }
+            }).then(res => res.json()).then(data => {
+                if(data.status === 'ok') {
+                    if(data.liked) {
+                        icon.classList.remove('far', 'text-dark', 'cursor-pointer');
+                        icon.classList.add('fas', 'text-danger');
+                    } else {
+                        icon.classList.remove('fas', 'text-danger');
+                        icon.classList.add('far', 'text-dark', 'cursor-pointer');
+                    }
+                    likesCountEl.innerText = data.total_likes + ' likes';
+                }
+            });
+        });
+    });
+
+
+    // --- Story Logic ---
+    function openStoryModal(imgUrl, musicUrl, username) {
+        const modal = document.getElementById('storyModal');
+        const img = document.getElementById('storyImg');
+        const audio = document.getElementById('storyAudio');
+        const userTxt = document.getElementById('storyUser');
+        const badge = document.getElementById('musicBadge');
+        const progress = document.getElementById('storyProgress');
+
+        modal.style.display = "block";
+        img.src = imgUrl;
+        userTxt.innerText = username;
+        progress.style.width = "0%";
+
+        if (musicUrl && (musicUrl.includes('spotify') || musicUrl.includes('soundhelix'))) {
+            badge.style.display = "inline-block";
+        } else {
+            badge.style.display = "none";
+        }
+
+        if (musicUrl && musicUrl !== "" && musicUrl !== "None") {
+            audio.src = musicUrl;
+            audio.play().catch(e => console.log("User interaction required"));
+        }
+
+        let width = 0;
+        clearInterval(progressInterval);
+        progressInterval = setInterval(() => {
+            if (width >= 100) { closeStoryModal(); } 
+            else { width += 0.5; progress.style.width = width + "%"; }
+        }, 50);
+    }
+
+    function closeStoryModal() {
+        const modal = document.getElementById('storyModal');
+        const audio = document.getElementById('storyAudio');
+        modal.style.display = "none";
+        audio.pause();
+        audio.src = "";
+        clearInterval(progressInterval);
+    }
+
+    // --- Share & Real-time Logic ---
+    function openShareModal(postId) {
+        currentSharingPostId = postId;
+        const modal = document.getElementById('shareModal');
+        const list = document.getElementById('friendsList');
+        
+        modal.style.display = "block";
+        list.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm text-primary"></div><p class="small mt-2">Loading friends...</p></div>';
+
+        fetch("{% url 'get_friends_list' %}")
+            .then(res => res.json())
+            .then(data => {
+                list.innerHTML = '';
+                if (!data.friends || data.friends.length === 0) {
+                    list.innerHTML = '<p class="text-muted text-center p-4">No accepted friends found.</p>';
+                    return;
+                }
+                data.friends.forEach(friend => {
+                    const pic = friend.profile_pic ? friend.profile_pic : 'https://via.placeholder.com/40';
+                    list.innerHTML += `
+                        <div class="d-flex align-items-center justify-content-between mb-2 p-2 friend-item rounded shadow-sm" style="border: 1px solid #f0f0f0;">
+                            <div class="d-flex align-items-center">
+                                <img src="${pic}" class="rounded-circle me-2" style="width:40px; height:40px; object-fit:cover;">
+                                <span class="fw-bold small">${friend.username}</span>
+                            </div>
+                            <button id="send-btn-${friend.username}" onclick="processShare('${friend.username}')" class="btn btn-primary btn-sm px-3 rounded-pill shadow-sm">Send</button>
+                        </div>
+                    `;
+                });
+            })
+            .catch(err => {
+                list.innerHTML = '<p class="text-danger text-center p-3">Error fetching friends.</p>';
+            });
+    }
+
+    function processShare(username) {
+        const btn = document.getElementById(`send-btn-${username}`);
+        btn.innerText = "Sending...";
+        btn.disabled = true;
+
+        // Dynamic URL construction to handle any prefix (auth/ etc.)
+        const baseUrl = "{% url 'get_friends_list' %}".replace('get-friends/', '');
+        const shareUrl = `${baseUrl}share/${currentSharingPostId}/${username}/`;
+
+        fetch(shareUrl)
+            .then(res => res.json())
+            .then(data => {
+                btn.innerText = "Sent ✓";
+                btn.classList.add('btn-sent');
+                // Optional: closeShareModal() after a delay
+            })
+            .catch(err => {
+                alert("Share failed!");
+                btn.innerText = "Send";
+                btn.disabled = false;
+            });
+    }
+
+    // Real-time Notification Polling
+    function startRealTimeCheck() {
+        setInterval(() => {
+            // Aapka unread message check karne wala URL yahan aayega
+            fetch("{% url 'inbox' %}") // Change this to your unread count JSON API if available
+                .then(res => {
+                    // Yahan logic aayega agar unread count badha toh UI update karein
+                }).catch(e => {});
+        }, 5000); // Every 5 seconds
+    }
+
+    function closeShareModal() {
+        document.getElementById('shareModal').style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        const storyM = document.getElementById('storyModal');
+        const shareM = document.getElementById('shareModal');
+        if (event.target == storyM) { closeStoryModal(); }
+        if (event.target == shareM) { closeShareModal(); }
+    }
+
+    document.addEventListener('DOMContentLoaded', startRealTimeCheck);
+</script>
+{% endblock %}

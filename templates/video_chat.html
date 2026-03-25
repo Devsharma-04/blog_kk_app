@@ -1,0 +1,151 @@
+{% extends "layouts/app.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row bg-dark rounded-4 overflow-hidden shadow-lg" style="min-height: 550px;">
+        <div class="col-md-8 p-0 position-relative bg-black d-flex align-items-center justify-content-center">
+            <video id="remote-video" autoplay playsinline class="w-100 h-100" style="object-fit: cover; background: #000;"></video>
+            <h3 id="remote-username" class="position-absolute top-0 start-0 m-3 text-white bg-dark bg-opacity-75 px-3 py-1 rounded d-none" style="z-index: 10;">Stranger</h3>
+            <div id="waiting-ui" class="position-absolute text-white text-center">
+                <div class="spinner-grow text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+                <h5 id="status-text" class="fw-light">Searching for someone special...</h5>
+            </div>
+        </div>
+        <div class="col-md-4 p-0 border-start border-secondary bg-dark d-flex flex-column">
+            <div class="flex-grow-1 bg-black">
+                <video id="local-video" autoplay muted playsinline class="w-100 h-100" style="object-fit: cover;"></video>
+            </div>
+            <div class="p-3 text-white border-top border-secondary bg-dark">
+                <span>You: <strong>{{ request.user.username }}</strong></span>
+            </div>
+        </div>
+    </div>
+    <div class="text-center mt-4 mb-5">
+        <button id="mute-btn" class="btn btn-secondary btn-lg rounded-pill px-4 fw-bold me-2">Mute Mic</button>
+        <button id="camera-btn" class="btn btn-secondary btn-lg rounded-pill px-4 fw-bold me-2">Stop Video</button>
+        <button id="next-btn" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold">NEXT STRANGER</button>
+        <a href="/" class="btn btn-outline-light btn-lg rounded-pill px-4 ms-2">STOP</a>
+    </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+<script>
+    const myUsername = "{{ request.user.username }}";
+    let localStream;
+    let peer;
+    let isConnected = false;
+    let isCalling = false;
+
+    async function init() {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById('local-video').srcObject = localStream;
+
+            peer = new Peer({
+                config: {'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }]}
+            });
+
+            peer.on('open', (id) => {
+                console.log("My Peer ID:", id);
+                document.getElementById('waiting-ui').classList.remove('d-none');
+                searchStranger(id);
+            });
+
+            document.getElementById('mute-btn').onclick = function() {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    audioTrack.enabled = !audioTrack.enabled;
+                    this.innerText = audioTrack.enabled ? 'Mute Mic' : 'Unmute Mic';
+                    this.classList.toggle('btn-secondary');
+                    this.classList.toggle('btn-danger');
+                }
+            };
+
+            document.getElementById('camera-btn').onclick = function() {
+                const videoTrack = localStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    videoTrack.enabled = !videoTrack.enabled;
+                    this.innerText = videoTrack.enabled ? 'Stop Video' : 'Start Video';
+                    this.classList.toggle('btn-secondary');
+                    this.classList.toggle('btn-danger');
+                }
+            };
+
+            peer.on('call', (call) => {
+                console.log("Receiving call...");
+                const callerName = call.metadata ? call.metadata.username : "Stranger";
+                const nameEl = document.getElementById('remote-username');
+                nameEl.innerText = callerName;
+                nameEl.classList.remove('d-none');
+                call.answer(localStream);
+                handleCall(call);
+            });
+        } catch (err) {
+            alert("Please allow camera/mic access!");
+        }
+    }
+
+    function handleCall(call) {
+        call.on('stream', (remoteStream) => {
+            document.getElementById('remote-video').srcObject = remoteStream;
+            document.getElementById('waiting-ui').classList.add('d-none');
+            document.getElementById('status-text').innerText = 'Searching for someone special...';
+            isConnected = true;
+        });
+        call.on('close', () => {
+            document.getElementById('remote-username').innerText = 'Stranger disconnected';
+            document.getElementById('remote-video').srcObject = null;
+            isConnected = false;
+            isCalling = false;
+        });
+    }
+
+    function searchStranger(myId) {
+        if (isConnected || isCalling) return;
+
+        // Purani line aisi hogi: fetch(`/get-random-stranger/?peer_id=${myId}`)
+// Use badal kar ye kar dein:
+
+        fetch("{% url 'get_random_stranger' %}?peer_id=" + myId)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'found' && data.role === 'caller' && !isConnected) {
+                    isCalling = true;
+                    console.log("Calling stranger...");
+                    const nameEl = document.getElementById('remote-username');
+                    nameEl.innerText = data.stranger_name;
+                    nameEl.classList.remove('d-none');
+                    const call = peer.call(data.stranger_peer_id, localStream, { metadata: { username: myUsername } });
+                    handleCall(call);
+                } else {
+                    setTimeout(() => searchStranger(myId), 3000);
+                }
+            })
+            .catch(() => setTimeout(() => searchStranger(myId), 5000));
+    }
+
+    document.getElementById('next-btn').onclick = () => {
+        document.getElementById('remote-username').classList.add('d-none');
+        document.getElementById('remote-username').innerText = 'Finding stranger...';
+        document.getElementById('waiting-ui').classList.remove('d-none');
+        document.getElementById('remote-video').srcObject = null;
+        
+        if (peer) {
+            Object.values(peer.connections).forEach(conns => {
+                conns.forEach(conn => conn.close());
+            });
+        }
+        isConnected = false;
+        isCalling = false;
+
+        fetch("{% url 'reset_call_session' %}")
+            .then(() => searchStranger(peer.id));
+    };
+
+    window.addEventListener('beforeunload', () => {
+        navigator.sendBeacon("{% url 'cleanup_session' %}");
+        navigator.sendBeacon("{% url 'leave_call_session' %}");
+    });
+
+    init();
+</script>
+{% endblock %}

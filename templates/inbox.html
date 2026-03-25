@@ -1,0 +1,31 @@
+{% extends "layouts/app.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm border-0" style="border-radius: 15px;">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h5 class="mb-0 fw-bold">Messages</h5>
+            </div>
+            <div class="list-group list-group-flush overflow-auto" style="max-height: 80vh;">
+                {% for friend in friends %}
+                    {% if friend != request.user %}
+                    <a href="{% url 'chat_room' friend.username %}" class="list-group-item list-group-item-action border-0 py-3 d-flex align-items-center">
+                        <img src="{{ friend.profile.profile_pic.url }}" class="rounded-circle me-3" style="width: 55px; height: 55px; object-fit: cover; border: 1px solid #dbdbdb;">
+                        <div>
+                            <div class="fw-bold text-dark">{{ friend.username }}</div>
+                            <div class="text-muted small">Tap to chat</div>
+                        </div>
+                    </a>
+                    {% endif %}
+                {% empty %}
+                <div class="text-center py-5">
+                    <i class="far fa-paper-plane fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No friends yet. Search and add friends to start chatting!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

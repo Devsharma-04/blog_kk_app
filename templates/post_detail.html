@@ -1,0 +1,40 @@
+{% extends "layouts/app.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0" style="border-radius: 15px; overflow: hidden;">
+                <div class="row g-0">
+                    <div class="col-md-7 bg-black d-flex align-items-center">
+                        <img src="{{ post.image.url }}" class="img-fluid w-100" alt="Post">
+                    </div>
+                    
+                    <div class="col-md-5 d-flex flex-column bg-white">
+                        <div class="p-3 border-bottom d-flex align-items-center">
+                            <img src="{{ post.user.profile.profile_pic.url }}" class="rounded-circle me-2" style="width:35px; height:35px; object-fit:cover;">
+                            <span class="fw-bold">{{ post.user.username }}</span>
+                        </div>
+                        
+                        <div class="p-3 flex-grow-1" style="max-height: 400px; overflow-y: auto;">
+                            <p><strong>{{ post.user.username }}</strong> {{ post.caption }}</p>
+                            <hr>
+                            {% for comment in post.comments.all %}
+                                <p class="small mb-2"><strong>{{ comment.user.username }}</strong> {{ comment.content }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <div class="p-3 border-top">
+                            <div class="d-flex mb-2 fs-4">
+                                <i class="far fa-heart me-3"></i>
+                                <i class="far fa-comment"></i>
+                            </div>
+                            <p class="fw-bold small">{{ post.total_likes }} likes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

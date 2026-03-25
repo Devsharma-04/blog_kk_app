@@ -1,0 +1,102 @@
+{% extends "layouts/app.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm" style="height: 85vh; border-radius: 15px;">
+                
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
+                    <a href="{% url 'user_profile' other_user.username %}" class="text-dark">
+                        <i class="fas fa-chevron-left me-3"></i>
+                    </a>
+                    <img src="{{ other_user.profile.profile_pic.url }}" class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover;">
+                    <h6 class="mb-0 fw-bold">{{ other_user.username }}</h6>
+                </div>
+
+                <div id="chat-window" class="card-body overflow-auto bg-light p-3" style="flex: 1;">
+                    {% for msg in messages %}
+                        <div class="d-flex mb-2 {% if msg.sender == request.user %}justify-content-end{% endif %}">
+                            <div class="p-2 px-3 rounded-pill shadow-sm" 
+                                 style="max-width: 80%; font-size: 14px; 
+                                 {% if msg.sender == request.user %} 
+                                    background-color: #0095f6; color: white; 
+                                 {% else %} 
+                                    background-color: #efefef; color: black; 
+                                 {% endif %}">
+                                {{ msg.content }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="card-footer bg-white border-0 py-3">
+                    <form id="chat-form" class="d-flex align-items-center border rounded-pill px-3 py-1">
+                        {% csrf_token %}
+                        <input type="text" id="chat-message-input" name="message" autocomplete="off" 
+                               class="form-control border-0 shadow-none bg-transparent" 
+                               placeholder="Message..." required>
+                        <button type="submit" class="btn btn-link text-primary fw-bold text-decoration-none shadow-none">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatWindow = document.getElementById('chat-window');
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('chat-message-input');
+    const currentUserId = "{{ request.user.id }}";
+    const otherUserId = "{{ other_user.id }}";
+
+    // Scroll function
+    function scrollToBottom() {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+    scrollToBottom();
+
+    // 1. WebSocket Connection
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + otherUserId + '/'
+    );
+
+    // 2. Receiving Messages
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const isMe = data.sender_id == currentUserId;
+
+        const messageHtml = `
+            <div class="d-flex mb-2 ${isMe ? 'justify-content-end' : ''}">
+                <div class="p-2 px-3 rounded-pill shadow-sm" 
+                     style="max-width: 80%; font-size: 14px; 
+                     background-color: ${isMe ? '#0095f6' : '#efefef'}; 
+                     color: ${isMe ? 'white' : 'black'};">
+                    ${data.message}
+                </div>
+            </div>
+        `;
+
+        chatWindow.insertAdjacentHTML('beforeend', messageHtml);
+        scrollToBottom();
+    };
+
+    // 3. Sending Messages
+    chatForm.onsubmit = function(e) {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+
+        if (message && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            messageInput.value = '';
+        }
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly. Trying to reconnect...');
+    };
+</script>
+{% endblock %}

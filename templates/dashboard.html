@@ -1,0 +1,167 @@
+{% extends 'layouts/app.html' %} 
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center p-4" style="border-radius: 15px;">
+                {% if profile.profile_pic %}
+                    <img src="{{ profile.profile_pic.url }}" 
+                         class="rounded-circle mx-auto mb-3" 
+                         style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #0095f6;"
+                         onerror="this.src='https://ui-avatars.com/api/?name={{ request.user.username }}&size=120&background=random'">
+                {% else %}
+                    <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&size=120&background=random" 
+                         class="rounded-circle mx-auto mb-3" 
+                         style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #0095f6;">
+                {% endif %}
+                
+                <h4 class="fw-bold mb-0">{{ request.user.username }}</h4>
+                <p class="text-muted small mb-3">{{ request.user.email }}</p>
+                <p class="px-3 text-break">{{ profile.bio|default:"No bio yet..." }}</p>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary btn-sm fw-bold">Edit Profile</a>
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm fw-bold">Logout</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h5 class="fw-bold text-primary"><i class="fas fa-bell me-2"></i>Real-time Notifications</h5>
+                </div>
+                <div class="card-body" id="notification-list" style="max-height: 300px; overflow-y: auto;">
+                    {% for notification in notifications %}
+                    <div class="p-2 mb-2 bg-light rounded border-start border-primary border-4">
+                        <p class="mb-0 small"><strong>{{ notification.sender.username }}</strong>: {{ notification.message }}</p>
+                        <span class="text-muted" style="font-size: 10px;">{{ notification.created_at|timesince }} ago</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-2" id="no-notifications">There is no notification right now.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
+                <div class="card-header bg-white border-0 pt-3">
+                    <h5 class="fw-bold"><i class="fas fa-user-plus me-2"></i>Friend Requests</h5>
+                </div>
+                <div class="card-body">
+                    {% for req in pending_requests %}
+                    <div class="d-flex align-items-center justify-content-between mb-3 p-2 bg-light rounded shadow-sm">
+                        <div class="d-flex align-items-center">
+                            {% if req.from_user.profile.profile_pic %}
+                                <img src="{{ req.from_user.profile.profile_pic.url }}" 
+                                     class="rounded-circle me-3" 
+                                     style="width: 45px; height: 45px; object-fit: cover;"
+                                     onerror="this.src='https://ui-avatars.com/api/?name={{ req.from_user.username }}&size=45&background=random'">
+                            {% else %}
+                                <img src="https://ui-avatars.com/api/?name={{ req.from_user.username }}&size=45&background=random" 
+                                     class="rounded-circle me-3">
+                            {% endif %}
+                            
+                            <div>
+                                <h6 class="mb-0 fw-bold">{{ req.from_user.username }}</h6>
+                                <span class="text-muted small">Sent you a request</span>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <a href="{% url 'accept_request' req.id %}" class="btn btn-primary btn-sm px-4 fw-bold accept-req-btn">Confirm</a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center mb-0 py-3">No pending requests at the moment.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if request.user.is_superuser %}
+            <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+                <div class="card-header bg-white border-0 pt-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Admin: All Users</h5>
+                    <span class="badge bg-dark">{{ total_users }} Total</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td><strong>{{ user.username }}</strong></td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    const socket = new WebSocket(
+        'ws://' + window.location.host + '/ws/notifications/'
+    );
+
+    socket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const notificationList = document.getElementById('notification-list');
+        const noNotif = document.getElementById('no-notifications');
+
+        // Agar "No notifications" wala message hai, toh use hata do
+        if(noNotif) noNotif.remove();
+
+        // Naya notification HTML create karein
+        const newNotif = `
+            <div class="p-2 mb-2 bg-light rounded border-start border-primary border-4 shadow-sm animate__animated animate__fadeInRight">
+                <p class="mb-0 small">${data.message}</p>
+                <span class="text-muted" style="font-size: 10px;">Just now</span>
+            </div>
+        `;
+
+        // List ke sabse upar add karein
+        notificationList.insertAdjacentHTML('afterbegin', newNotif);
+
+        // Ek chhota sa browser alert bhi dikha sakte hain
+        console.log("Naya message:", data.message);
+    };
+
+    socket.onclose = function(e) {
+        console.error('Notification connection band ho gaya.');
+    };
+
+    function getCookie(name) { let cookieValue = null; if (document.cookie && document.cookie !== '') { const cookies = document.cookie.split(';'); for (let i = 0; i < cookies.length; i++) { const cookie = cookies[i].trim(); if (cookie.substring(0, name.length + 1) === (name + '=')) { cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); break; } } } return cookieValue; }
+    document.querySelectorAll('.accept-req-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            fetch(this.href, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') }
+            }).then(r=>r.json()).then(data => {
+                this.innerHTML = 'Confirmed ✓';
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-success');
+                this.style.pointerEvents = 'none';
+            });
+        });
+    });
+</script>
+{% endblock %}

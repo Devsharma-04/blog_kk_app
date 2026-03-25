@@ -1,0 +1,152 @@
+{% extends "layouts/app.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0" style="border-radius: 15px;">
+            <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
+                <a href="{% url 'dashboard' %}" class="text-dark me-3"><i class="fas fa-arrow-left"></i></a>
+                <h5 class="mb-0 fw-bold">Edit Profile</h5>
+            </div>
+            
+            <div class="card-body p-4 text-center">
+                <form method="POST" enctype="multipart/form-data" id="profile-form">
+                    {% csrf_token %}
+                    
+                    <div class="position-relative d-inline-block mb-4">
+                        <label for="image-input" style="cursor: pointer;">
+                            <img src="{% if profile.profile_pic %}{{ profile.profile_pic.url }}{% else %}https://ui-avatars.com/api/?name={{ request.user.username }}{% endif %}" 
+                                 id="display-pic" class="rounded-circle border" 
+                                 style="width: 120px; height: 120px; object-fit: cover;"
+                                 onerror="this.src='https://ui-avatars.com/api/?name={{ request.user.username }}'">
+                            <div class="mt-2 small text-primary fw-bold">Update Photo</div>
+                        </label>
+                        <input type="file" id="image-input" accept="image/*" class="d-none">
+                        
+                        <input type="hidden" name="profile_pic_data" id="profile_pic_data">
+                    </div>
+
+                    <div class="modal fade" id="cropModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h6 class="modal-title fw-bold">Adjust Photo</h6>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body p-0">
+                                    <div class="img-container" style="background: #eee; overflow: hidden; height: 350px;">
+                                        <img id="crop-preview" style="max-width: 100%; display: block;">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-primary px-4" id="crop-done">Apply Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-start mb-3">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Username</label>
+                        {{ u_form.username }}
+                    </div>
+                    
+                    <div class="text-start mb-3">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Email</label>
+                        {{ u_form.email }}
+                    </div>
+
+                    <div class="text-start mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">Bio</label>
+                        {{ p_form.bio }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">Save Profile</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let cropper;
+        const imageInput = document.getElementById('image-input');
+        const cropPreview = document.getElementById('crop-preview');
+        const cropModalEl = document.getElementById('cropModal');
+        const displayPic = document.getElementById('display-pic');
+        const croppedDataField = document.getElementById('profile_pic_data');
+        
+        const cropModal = new bootstrap.Modal(cropModalEl);
+
+        // Jab user file select kare
+        imageInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    cropPreview.src = event.target.result;
+                    cropModal.show();
+                };
+                reader.readAsDataURL(files[0]);
+            }
+        });
+
+        // Cropper initialize jab modal khule
+        cropModalEl.addEventListener('shown.bs.modal', function() {
+            cropper = new Cropper(cropPreview, {
+                aspectRatio: 1,
+                viewMode: 1,
+                guides: false,
+                autoCropArea: 1,
+                movable: true,
+                zoomable: true,
+            });
+        });
+
+        // Destroy cropper jab modal band ho
+        cropModalEl.addEventListener('hidden.bs.modal', function() {
+            if (cropper) {
+                cropper.destroy();
+                imageInput.value = ""; // Clear input
+            }
+        });
+
+        // Apply Button Logic
+        document.getElementById('crop-done').onclick = function() {
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas({
+                    width: 300,
+                    height: 300,
+                });
+                
+                const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+                displayPic.src = base64Image; // Preview change karo
+                croppedDataField.value = base64Image; // Hidden field mein data daalo
+                
+                cropModal.hide();
+            }
+        };
+    });
+</script>
+
+<style>
+    /* Styling for forms and cropper */
+    input[type="text"], input[type="email"], textarea { 
+        width: 100%; 
+        padding: 12px; 
+        background: #fafafa; 
+        border: 1px solid #dbdbdb; 
+        border-radius: 8px; 
+        outline: none;
+    }
+    input[type="text"]:focus, textarea:focus {
+        border-color: #a8a8a8;
+    }
+    .cropper-view-box, .cropper-face { border-radius: 50%; }
+</style>
+{% endblock %}
