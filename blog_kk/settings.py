@@ -1,28 +1,23 @@
 import os
 from pathlib import Path
 
-# 1. BASE_DIR hamesha top par hona chahiye
+# 1. BASE_DIR
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings
+# 2. Security Settings
 SECRET_KEY = 'django-insecure-hhd2p!%eotsk%hqvpdrtj7wl!agu6g_2%9(48o%4)5h$*4*lef'
-DEBUG = False
-# Render ka link allow karne ke liye
+DEBUG = False  # Production mein False hi rehna chahiye
+
 ALLOWED_HOSTS = ['diagram-chat-app.onrender.com', 'localhost', '127.0.0.1', '*']
 
-# CSRF error fix karne ke liye (Ye sabse zaroori hai)
-CSRF_TRUSTED_ORIGINS = [
-    'https://diagram-chat-app.onrender.com'
-]
+# 3. CSRF & Session Fix (Login Error ke liye)
+CSRF_TRUSTED_ORIGINS = ['https://diagram-chat-app.onrender.com']
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'None' # Cross-site requests allow karne ke liye
 
-# Static files configuration
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Application definition
+# 4. Application definition
 INSTALLED_APPS = [
     'daphne',
     'django.contrib.admin',
@@ -38,13 +33,9 @@ INSTALLED_APPS = [
     'pwa',
 ]
 
-AUTHENTICATION_BACKENDS=[
-    'django.contrib.auth.backends.ModelBackend'
-]
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Static files ke liye zaroori
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -66,7 +57,6 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.unread_messages_notifier',
-
             ],
         },
     },
@@ -74,19 +64,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'blog_kk.wsgi.application'
 ASGI_APPLICATION = 'blog_kk.asgi.application'
-# Database
+
+# 5. Database (Render ke liye SQLite use kar rahe hain abhi)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'my_project_db',      # Jo naam Step 1 mein rakha tha
-        'USER': 'postgres',           # Default yahi hota hai
-        'PASSWORD': '1234', # Jo installation ke waqt rakha tha
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
-# Password validation
+# 6. Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
@@ -94,28 +81,29 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
-# Internationalization
+# 7. Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# --- STATIC FILES CONFIG (FIXED) ---
+# 8. Static & Media Files (Fixed)
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# WhiteNoise Storage
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# --- MEDIA FILES CONFIG ---
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Crispy Forms
+# 9. Crispy Forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-# --- PWA SETTINGS ---
+# 10. PWA SETTINGS
 PWA_APP_NAME = 'Diagram'
 PWA_APP_DESCRIPTION = "Connect & Explore with Diagram"
 PWA_APP_THEME_COLOR = '#007bff'
@@ -123,31 +111,11 @@ PWA_APP_BACKGROUND_COLOR = '#ffffff'
 PWA_APP_DISPLAY = 'standalone'
 PWA_APP_START_URL = '/'
 PWA_APP_ICONS = [
-    {
-        'src': '/static/images/icon-192.png',
-        'sizes': '192x192'
-    },
-    {
-        'src': '/static/images/icon-512.png',
-        'sizes': '512x512'
-    }
+    {'src': '/static/images/icon-192.png', 'sizes': '192x192'},
+    {'src': '/static/images/icon-512.png', 'sizes': '512x512'}
 ]
-PWA_APP_SCREENSHOTS = [
-    {
-        'src': '/static/images/screenshot-desktop.png',
-        'sizes': '1280x720',
-        'type': 'image/png',
-        'form_factor': 'wide',
-        'label': 'Desktop View'
-    },
-    {
-        'src': '/static/images/screenshot-mobile.png',
-        'sizes': '720x1280',
-        'type': 'image/png',
-        # Isme form_factor nahi dalna ya 'narrow' dalna hai
-        'label': 'Mobile View'
-    }
-]
+
+# 11. Channels
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
