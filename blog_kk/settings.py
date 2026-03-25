@@ -14,6 +14,9 @@ ALLOWED_HOSTS = ['diagram-chat-app.onrender.com', 'localhost', '127.0.0.1', '*']
 CSRF_TRUSTED_ORIGINS = [
     'https://diagram-chat-app.onrender.com'
 ]
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
 
 # Static files configuration
 STATIC_ROOT = BASE_DIR / 'staticfiles'
