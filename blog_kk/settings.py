@@ -7,7 +7,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings
 SECRET_KEY = 'django-insecure-hhd2p!%eotsk%hqvpdrtj7wl!agu6g_2%9(48o%4)5h$*4*lef'
 DEBUG = False
-ALLOWED_HOSTS = ['diagram-chat-app.onrender.com', 'localhost', '127.0.0.1']
+# Render ka link allow karne ke liye
+ALLOWED_HOSTS = ['diagram-chat-app.onrender.com', 'localhost', '127.0.0.1', '*']
+
+# CSRF error fix karne ke liye (Ye sabse zaroori hai)
+CSRF_TRUSTED_ORIGINS = [
+    'https://diagram-chat-app.onrender.com'
+]
 
 # Static files configuration
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -143,4 +149,3 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
-CSRF_TRUSTED_ORIGINS = ['https://diagram-chat-app.onrender.com']
