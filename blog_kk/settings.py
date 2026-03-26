@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+import dj_database_url
 # 1. BASE_DIR
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -67,10 +67,11 @@ ASGI_APPLICATION = 'blog_kk.asgi.application'
 
 # 5. Database (Render ke liye SQLite use kar rahe hain abhi)
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        # Yahan aapko Render se mila hua URL dalna hai
+        default="postgresql://daigram_db_user:R945OdsLEPWHCuF1TYjWW8kW7LJuqMin@dpg-d72dmolm5p6s73cvmk7g-a.singapore-postgres.render.com/daigram_db",
+        conn_max_age=600
+    )
 }
 
 # 6. Password validation
