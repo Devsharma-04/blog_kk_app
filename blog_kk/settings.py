@@ -132,3 +132,9 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'apna_name', # Cloudinary account se lo
+    'API_KEY': 'apni_key',
+    'API_SECRET': 'apna_secret'
+}
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
