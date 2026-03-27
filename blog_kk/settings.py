@@ -133,8 +133,8 @@ CHANNEL_LAYERS = {
     },
 }
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'apna_name', # Cloudinary account se lo
-    'API_KEY': 'apni_key',
-    'API_SECRET': 'apna_secret'
+    'CLOUD_NAME': 'dinycbvyq', 
+    'API_KEY': '937555929268431',
+    'API_SECRET': 'SqV_N8pIwZLVitZXxzujOxIvM14'
 }
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
