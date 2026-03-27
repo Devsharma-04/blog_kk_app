@@ -1,21 +1,23 @@
 import os
 from pathlib import Path
 import dj_database_url
+
 # 1. BASE_DIR
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 2. Security Settings
 SECRET_KEY = 'django-insecure-hhd2p!%eotsk%hqvpdrtj7wl!agu6g_2%9(48o%4)5h$*4*lef'
-DEBUG = False  # Production mein False hi rehna chahiye
+DEBUG = False 
 
 ALLOWED_HOSTS = ['diagram-chat-app.onrender.com', 'localhost', '127.0.0.1', '*']
 
-# 3. CSRF & Session Fix (Login Error ke liye)
+# 3. CSRF & Session Fix
 CSRF_TRUSTED_ORIGINS = ['https://diagram-chat-app.onrender.com']
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = 'None' # Cross-site requests allow karne ke liye
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE = 'None' # Added for better login stability
 
 # 4. Application definition
 INSTALLED_APPS = [
@@ -31,11 +33,13 @@ INSTALLED_APPS = [
     'core',
     'channels',
     'pwa',
+    'cloudinary_storage', # Agar images save karni hain toh ye install karna padega
+    'cloudinary',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Static files ke liye zaroori
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -65,10 +69,9 @@ TEMPLATES = [
 WSGI_APPLICATION = 'blog_kk.wsgi.application'
 ASGI_APPLICATION = 'blog_kk.asgi.application'
 
-# 5. Database (Render ke liye SQLite use kar rahe hain abhi)
+# 5. Database (PostgreSQL Connection)
 DATABASES = {
     'default': dj_database_url.config(
-        # Yahan aapko Render se mila hua URL dalna hai
         default="postgresql://daigram_db_user:R945OdsLEPWHCuF1TYjWW8kW7LJuqMin@dpg-d72dmolm5p6s73cvmk7g-a.singapore-postgres.render.com/daigram_db",
         conn_max_age=600
     )
@@ -88,15 +91,22 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# 8. Static & Media Files (Fixed)
+# 8. Static & Media Files (FIXED SECTION)
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# --- YE LINE AAPKE CODE MEIN NAHI THI, ISLIYE 404 AA RAHA THA ---
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # WhiteNoise Storage
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# IMPORTANT: Render par uploads ke liye Cloudinary settings dalo (Niche Step 2 mein dekho)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
